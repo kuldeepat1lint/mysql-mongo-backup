@@ -19,8 +19,9 @@ S3_UPLOAD=1                               # 1 = Upload to S3
 DAY_TO_KEEP_S3OBJECTS=5                   # 0 to keep forever
 export AWS_ACCESS_KEY_ID=''               # AWS Access Key ID
 export AWS_SECRET_ACCESS_KEY=''           # AWS Secret Access Key
-S3_PATH='s3://sass-taxi/mongo-backup'     # S3 path
-S3_BUCKET='s3://sass-taxi'                # S3 BUCKET
+S3_BUCKET='sass-taxi'                     # S3 BUCKET
+S3_PREFIX='mongo-backup'                  # S3 prefix
+S3_PATH="s3://$S3_BUCKET/$S3_PREFIX"      # S3 path
 S3_OPTIONS='--storage-class STANDARD_IA'  # S3 options
 AWS_CLI_OPTIONS='--region ap-northeast-1' # AWS CLI options
 #----------------------------------------
@@ -117,7 +118,7 @@ fi
 # Delete old backups from S3
 if [ "$DAY_TO_KEEP_S3OBJECTS" -gt 0 ]; then
   echo "Deleting backups older than $DAY_TO_KEEP_S3OBJECTS days from S3"
-  KEYS = aws s3api list-objects --bucket sass-taxi --prefix mongo-backup --query 'Contents[?LastModified<=`'"$(date -d "$DAY_TO_KEEP_S3OBJECTS days ago" -u +%Y-%m-%dT%H:%M:%SZ)"'`].Key' --output text | awk -v bucket=$S3_BUCKET '{for(i=1;i<=NF;i++) printf("%s/%s ", bucket,$i)}'
+  KEYS=$(aws s3api list-objects --bucket $S3_BUCKET --prefix $S3_PREFIX --query 'Contents[?LastModified<=`'"$(date -d "$DAY_TO_KEEP_S3OBJECTS days ago" -u +%Y-%m-%dT%H:%M:%SZ)"'`].Key' --output text | awk -v bucket=$S3_BUCKET '{for(i=1;i<=NF;i++) printf("%s/%s ", bucket,$i)}')
   if [ -n "$KEYS" ]; then
     echo $KEYS | xargs -n 1 aws s3 rm
   else
